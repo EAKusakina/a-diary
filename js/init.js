@@ -1,58 +1,45 @@
-// Загрузка запрашиваемых страниц с сервера
-function openPage(uri){
-	var ajaxObj = new AjaxRequestParent(),
-		hash = "";
+//Функционал для конструирования корректной страницы сайта (меню, navbar, контент) в зависимости от того, авторизован ли пользователь, какая страница запрошена с сервера (общедоступная, только для авторизованных пользователей, модальное окно для регистрации и т.д.)
+
+// получает с сервера запрашиваемые страницы (содержимое файлов в папке inc), проверяет возможность их вывода на экран(авторизован пользователь или нет) и выводит соответствующий ситуации контент
+function openPage(namePage){
+	var ajaxGetPage = new AjaxRequestParent();
 	//если пользователь, который уже подтвердил e-mail, пытается обновить страницу с благодарностью за регистрацию, перебросим его на главную
-	if (uri.indexOf('thanksForRegister')>= 0 && userID>0) {
-		uri = 'inc/index.inc.php';
-		history.replaceState({uri:uri}, null, "http://food.diary/"+uri);
+	if (namePage.indexOf('thanksForRegister')>= 0 && userID>0) {
+		namePage = '/inc/index.inc.php';
+		history.replaceState({path:namePage}, null, 'http://'+location.host+'/inc/index.inc.php');
 	}
-
-	if (intervalID != "")
-		clearInterval(intervalID);
-
-	//если прислали uri с #
-	var numHash = uri.indexOf('#');
-	if (numHash>=0){
-		//запомнили все, что после # (вместе с #)
-		hash = uri.substr(numHash);
-		//из uri убрали # и все, что после
-		uri = uri.slice(0, numHash);
-		if (uri.indexOf('..')==0)
-			uri = uri.substr(2);//убираем точки, чтобы сработала подсветка пункта меню
-	}	
+	//удалили подсветку у всех пунктов меню
 	$('#control li').removeClass('active');
-	// name *= value (элементы, у которых значение атрибута name содержит подстроку value)
-	$('#control').find('[href *= "'+uri+'"]').parent().addClass('active');
-	if (uri.indexOf('inc/')==0) 
-		uri = "../"+uri;
-	if (uri.indexOf('/inc')==0)
-		uri = ".."+uri;
-	if (uri.indexOf('index.php')==0) {
-		uri = "../"+uri;		
-		$('#control').find('[href *= "inc/index.inc.php"]').parent().addClass('active');
-	}
-	console.log(uri);
-	//	не используем ajaxObj.requestData т.к. там dataType = "json" и при попытке получить html возникает ошибка ( readyState: 4, responseText: <текст html cnhfybws> status: 200, statusText: "OK") 
+	// подсветили пункт меню, соответствующий загружаемой странице (name *= value - получение элементов, у которых значение атрибута name содержит подстроку value)
+	$('#control').find('[href *= "'+namePage+'"]').parent().addClass('active');
+	//приводим namePage к подходящему для обработки на сервере виду
+	if (namePage.indexOf('/inc')==0)
+		namePage = ".."+namePage;
+	//для получения контента страниц не используем ajaxGetPage.requestData т.к. там dataType = "json" и при попытке получить html возникает ошибка (readyState: 4, responseText: <текст html> status: 200, statusText: "OK") 
 	$.ajax({
 		type: 'POST',
-		url: ajaxObj.accessToPage,
-		data: {uri: uri},
-	}).done(function( response ) {
-		// вывод в блок <div id="data">
+		url: ajaxGetPage.accessToPage,
+		data: {namePage: namePage},
+	}).done(function( response ) {// вывод в блок <div id="data"> index.php контента страницы
+		//если запрошена страница, доступная только авторизованным пользователям
 		if (response.indexOf('personalPage') >= 0 ) {
+			//и пользователь авторизован
 			if (userID>0) {
-				if (uri.indexOf('events')>= 0)
+				//в зависимости от адреса страницы, сразу после подгрузки полученного с сервера контента, запустим соответсвующий странице триггер
+				//для страницы "Создание, редактирование и удаление событий"
+				if (namePage.indexOf('events')>= 0)
 					$('#data').html(response).trigger('loadToday');
-				if (uri.indexOf('categories')>= 0)
+				//для страницы "Создание, редактирование и удаление категорий"
+				if (namePage.indexOf('categories')>= 0)
 					$('#data').html(response).trigger('loadCategories');
-				if (uri.indexOf('export')>= 0)
+				//для страницы "Экспорт событий в Excel"
+				if (namePage.indexOf('export')>= 0)
 					$('#data').html(response).trigger('export');
 			}
 		} else {
 			//если получили html модального окна
 			if (response.indexOf('registerModal') >= 0 ) {
-				//вставим его код на страницу
+				//вставим его код на страницу index.php
 				$('#htmlModal').html(response);
 				//и откроем окно
 				$('#openModal').click();				
@@ -60,117 +47,104 @@ function openPage(uri){
 			}
 			$('#data').html(response);
 			//обновили scrollspy и affix, чтобы корректно работало боковое меню на странице с описанием сайта
-			$('body').scrollspy('refresh');
+			/*Плагин ScrollSpy используется для отслеживания раздела, в котором сейчас находится пользователь и подсвечивания этого раздела в меню.	
+			Плагин Twitter Bootstrap Affix предназначен для "прикрепления" элемента веб-страницы к краям окна браузера. "Прикреплённый" элемент при прокрутке веб-страницы будет оставаться в определённом месте и находиться в поле зрения пользователя. Плагин affix позволяет также выключать это "прикрепление"*/	
 			$('#sidebar').affix('checkPosition');
-			if (hash !== "") {
-				history.replaceState({uri:uri+hash}, null, uri+hash);
-				var s = $(hash)[0].offsetTop;
-				console.log('s = '+s);
-				$('body').scrollTop(s+50);
-				$('#sidebar').find('[href *= "'+hash+'"]').parent().addClass('active');
+			$('body').scrollspy('refresh');
+			//если открывается страница с hash
+			if (history.state.hash != "" && history.state.hash != undefined) {
+				//определим место в тексте страницы, на которое hash ссылается
+				var target_top= $(history.state.hash).offset().top;
+				//и перейдем к нему
+				$('html, body').animate({scrollTop:target_top}, 'slow');
 			}
 		}
 	}).fail(function( error ) {
-		console.log(error);
 		/*из-за ошибки мы не можем получить содержимое запрашиваемой страницы, поэтому вместо содержимого будем выводить сообщение об ошибке*/
-		ajaxObj.showErrorPage(error, 'openPage,auth.js');
+		ajaxGetPage.showErrorPage(error);
 	});
 }
     
-//Возвращает текущий URI страницы
-function getThisUri(){
-   var loc = event.location 
-	|| ( event.originalEvent && event.originalEvent.location )
-	|| document.location;   
-	console.log('loc+hash = '+ loc.pathname.substr(1)+loc.hash);
-//	console.log('hash = '+ window.location.hash);
-	return loc.pathname.substr(1)+loc.hash;
-}     
-
-function changeHistory(that) {
-	var uri = that.attr('href');
-	
-	//создаем новую запись в истории когда кликаем по ссылке
-	history.pushState({uri:uri}, null, uri);
-	  
-	// открываем страницу
-	openPage(uri);      	
-}
-
 $(document).ready(function() {
 
-	$('body').scrollspy({
-		target: '.bs-docs-sidebar',
-		//отступ от верха эрана после которого активным становится следующий элемент бокового меню
-		offset: 40
-	});
-	$('body #sidebar').affix({
-		offset: {
-		  top: 60
-		}
-	});
-	
+	//глобальная переменная, содержащая уникальный идентификатор пользователя; если она пуста, значит, пользователь не авторизован 
 	userID = "";
-	storageName = "";
-	//идентификатор setInterval, работающей на странице с событиями(today); используется для удаления ранее установленного setInterval, когда пользователь переходит на др страницу/обновляет ее
-	intervalID = "";
 	
+	//объект для получения данных с сервера
+	var ajaxObj = new AjaxRequestParent();
+	
+	// получаем текущий pathname; если pathname не существует, то присваиваем pathname главной страницы 
+	var path = document.location.pathname;
+	if (path == "/" || path == '/index.php')
+		path = '/inc/index.inc.php';
+    //задаем параметры для текущего состояния (объект состояния, необязательный заголовок и URL новой записи истории)
+	history.replaceState({path:path, hash:document.location.hash}, null, document.location.href);
+	
+	//скроем область с контентом, пока он не будет получен с сервера
 	$('#allContent').hide();
 	
-	var ajaxObj = new AjaxRequestParent();
-	var url = ajaxObj.accessToData;
-/*Синхронные запросы применяются только в крайнем случае, когда кровь из носу необходимо дождаться ответа сервера до продолжения скрипта. В 999 случаях из 1000 можно использовать асинхронные запросы. При этом общий алгоритм такой:
-
-Делаем асинхронный запрос
-Рисуем анимированную картинку или просто запись типа "Loading..."
-В onreadystatechange при достижении состояния 4 убираем Loading и, в зависимости от status вызываем обработку ответа или ошибки. http://xmlhttprequest.ru/#encoding*/	
-	$.when( ajaxObj.requestData(url, "getUserID", "")).always(function() {
+	//запрашиваем userID пользователя с сервера (получим его только если есть соответствующая сессионная переменная или cookie, созданный когда пользователь ставил галку "Запомнить меня" при авторизации)
+	$.when( ajaxObj.requestData(ajaxObj.authUrl, "getUserID", null))
+		.always(function() {
+			//прячем gif-картинку, которая показывалась, пока данные загружались с сервера, и показываем область контента
 			$('#preloader').hide();
 			$('#allContent').show();
 
-			//клик на "Зарегистрироваться"
+			//при клике на "Зарегистрироваться" подгружаем модальное окно с формой регистрации
 			$('#loadModal').click(function(){
-				openPage("inc/modal.inc.php");
+				openPage("/inc/modal.inc.php");
 				return false;
 			});
 
-			// клик на логотип
-			$('.navbar-brand').click(function(){
-				changeHistory($(this));
-				return false;
+			// при клике на логотип открываем главную страницу, при клике на ссылку меню - соответствующую страницу
+			$('body').on('click', '.navbar-brand, #control a', function() {
+				var linkPath = $(this).attr('href');			
+				//создаем новую запись в истории когда кликаем по ссылке
+				history.pushState({path:linkPath}, null, linkPath);
+				// открываем страницу
+				openPage(linkPath); 
+				//чтобы не было перезагрузки страницы
+				return false;			
 			});
-			
-			// клик на ссылки переключения страниц
-			$('#control a').click(function(){
-				changeHistory($(this));
-				return false;
-			});
-			
 			// обработчик нажатий на кнопки браузера назад/вперед 
-			$(window).bind('popstate', function() {
-				var uri = ( isEmpty(history.state) ) ? "" : history.state.uri;
-//				console.log('uri = ' + uri);
-				if ( uri!==""){
-						openPage(uri); 
+			$(window).on('popstate', function(e) {
+				e.preventDefault();
+				//если объект history.state не пуст - открываем соответствующую страницу
+				if ( !isEmpty(history.state) ){
+					//убираем старое содержимое(важно для страниц с боковым меню и hash)
+					$('#data').html("");	
+					openPage(history.state.path);
 				} else {
-					var tmp = getThisUri();
-					uri = tmp ? tmp :'inc/index.inc.php';
-					history.replaceState({uri:uri}, null, "http://food.diary/"+uri);
+					path = document.location.pathname;
+					if (path == "/" || path == '/index.php')
+						path = '/inc/index.inc.php';
+					history.replaceState({path:path, hash:document.location.hash}, null, document.location.href);
 				}
 			});
-		}).done(function (response) {
-			console.log(response);
-			var resp = ajaxObj.reponseHandler(response);
-			//если пользователь авторизован
-			if (resp) {
+		}).done(function (response) {			
+			//обработчик ответа сервера responseHandler находится в proto.js
+			var resp = ajaxObj.responseHandler(response);			
+			userID = +getCookie("userID");
+			if (!userID) {//проверка на пустые строки(""), null, undefined, false, 0 и NaN
 				userID = resp;
-				storageName = userID;
+			}
+			//если пользователь авторизован
+			if (userID>0) {
+				//спрячем пункты navbar, которые показываются неавторизованным пользователям ("Зарегистрироваться", форма для входа на сайт)
 				$('.nonAuthorized').hide();
-			} else {
+				//получим контент страницы
+				openPage(path);
+			} else if (resp === null) {//пользователь оказался не авторизован
+				//спрячем пункты меню и navbar, которые показываются авторизованным пользователям 				
 				$('.personalItems').hide();
-				$('.authorized').hide();					
-			}				
-			openPage(history.state.uri);  
+				$('.authorized').hide();			
+				//если запрошенной страницы нет среди страниц для авторизованных пользователей
+				if ($('.personalItems').find('[href *= "'+path+'"]').length==0) {
+					//откроем ее
+					openPage(path);
+				} else 
+					$('#data').html('<div id = "textError"><h3>Для работы с данными необходимо войти на сайт.</h3></div>');					
+			}	
 		}).fail(function (error) {
 			/*из-за ошибки мы не можем проверить, авторизован пользователь или нет,
 			поэтому будем показывать только общедоступные страницы, а на страницах для зарегистрированных пользователей выводить сообщение об ошибке
@@ -178,22 +152,29 @@ $(document).ready(function() {
 			$('.personalItems').hide();
 			$('.authorized').hide();
 
-			var errorText = "";
-			if (error.responseText !== "")
-				errorText = error.responseText;
-			else
-				errorText = "В связи с техническими неполадками данная страница временно недоступна. Попробуйте зайти позднее.";							
-			$('#data').html('<div id = "textError"><h3>' + errorText + '</h3></div>');
-			openPage(history.state.uri);
-			console.log(error);
+			//если запрошенной страницы нет среди страниц для авторизованных пользователей
+			if ($('.personalItems').find('[href *= "'+path+'"]').length==0)
+				//откроем ее
+				openPage(path);				
+			else //иначе выведем сообщение об ошибке
+				ajaxObj.showErrorPage(error);
 		});
 	
-	// получаем текущий uri, если uri не существует то присваиваем uri первой страницы 
-    var tmp = getThisUri();
-	var thisUri = tmp ? tmp :'inc/index.inc.php';
-    console.log("thisUri = " + thisUri);
-
-    //сразу задаем параметры для текущего состояния
-    history.replaceState({uri:thisUri}, null, "http://food.diary/"+thisUri);
-    	
+	//для корректного отображения бокового меню на странице "Описание сайта"
+	$('body').scroll(function(){
+		$('body').scrollspy('refresh');
+	});
+	//для coхранения userID во время перезагрузки страницы (нужно при работе нескольких пользователей в одном браузере) 
+	$(window).on('unload', function() {
+		var date = new Date(new Date().getTime() + 3 * 1000);
+		document.cookie ="userID=" + userID + "; expires=" + date.toUTCString();
+	});
+	
 });
+
+
+/*Синхронные запросы применяются только в крайнем случае, когда кровь из носу необходимо дождаться ответа сервера до продолжения скрипта. В 999 случаях из 1000 можно использовать асинхронные запросы. При этом общий алгоритм такой:
+
+Делаем асинхронный запрос
+Рисуем анимированную картинку или просто запись типа "Loading..."
+В onreadystatechange при достижении состояния 4 убираем Loading и, в зависимости от status вызываем обработку ответа или ошибки. http://xmlhttprequest.ru/#encoding*/	

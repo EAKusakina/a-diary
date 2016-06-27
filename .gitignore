@@ -1,2 +1,4 @@
 # ignore log-files
 php/*.txt
+node_modules
+*.txt

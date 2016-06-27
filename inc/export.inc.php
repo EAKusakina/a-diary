@@ -3,7 +3,7 @@ if($ajax) {
   echo '<section class="personalPage">
   	<h1>Эспорт событий в Microsoft Excel</h1>
 
-    <form id="form" action="#" method="POST">
+    <form id="exportForm" action="#" method="POST">
 	<div class="row">	
 		<div class="col-md-3">
 			<label class="control-label" for="datepicker1">Начало периода</label>

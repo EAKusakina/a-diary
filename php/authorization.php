@@ -3,21 +3,10 @@
 include 'Support/User.class.php';
 include 'Support/AjaxRequest.class.php';
 
-// Используем HTTP-only cookie для хранения идентификатора сессии, чтобы защититься от кражи идентификатора сессии с помощью js
-//session_set_cookie_params(0, '/', '', false, true);
-
-//session_start() создаёт сессию (или продолжает текущую на основе session id, переданного через GET-переменную или куку).
-//session_start();
-
-/*Псевдо-переменная $this доступна в том случае, если метод был вызван в контексте объекта. $this является ссылкой на вызываемый объект. Обычно это тот объект, которому принадлежит вызванный метод, но может быть и другой объект, если метод был вызван статически из контекста другого объекта. */
-
-
-// Здесь происходит непосредственная обработка запросов через класс AjaxRequest.
-// extends показывает, что AuthorizationAjaxRequest - это потомок AjaxRequest
+// обработчик запросов на авторизацию, регистрацию и выход с сайта
 class AuthorizationAjaxRequest extends AjaxRequest
 {
-
-	//названия функций, одна из которых будет вызвана
+	//названия методов, один из которых будет вызван
     public $actions = array(
         "login" => "login",
         "logout" => "logout",
@@ -25,88 +14,107 @@ class AuthorizationAjaxRequest extends AjaxRequest
 		"getUserID" => "getUserID",
     );
 	
+	//обеспечивает авторизацию пользователя
     public function login()
     {
-        $content = $this->getRequestParam("json_string");
+		//разбираем полученную от клиента строку-запрос
+		$content = $this->getRequestParam("json_string");
 		$arr = $this->handleContent($content);
 		$username = $arr->username;
         $password = $arr->password;
         $remember = $arr->rememberMe;
-
+		
+		//если по каким-то причинам проверки на клиенте отключены, и пришло пустое имя пользователя(e-mail) или пароль вернем ошибку
         if (empty($username)) {
-            $this->setFieldError("Email", "Enter the username");
+            $this->setFieldError("Email", "Введите E-mail");
             return;
         }
 
         if (empty($password)) {
-            $this->setFieldError("Password", "Enter the password");
+            $this->setFieldError("Password", "Введите пароль");
             return;
         }
-
+		
 		$user = new User($username, $password);		
 		
 		try {
+			//пробуем авторизовать пользователя
 			$auth_result = $user->authorize($remember);
         } catch (ExceptionForUser $e) {
+			//исключение на случай, когда пользователь прислал неверные данные (логин и/или пароль)
             $this->setFieldError("Email", $e->getMessage());
             return;
         } catch (Exception $e) {
-			file_put_contents(SERVER_ERROR, "Не удалось авторизовать пользователя: ".$username.", класс: ".get_class($this).", функция: ".__FUNCTION__.", ".$e."\n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
+			//исключение на случай, когда возникли какие-то проблемы не по вине клиента(ошибка сервера, ошибка в коде и т.п.)
+			file_put_contents(SERVER_ERROR, "Не удалось авторизовать пользователя: ".$username.", класс: ".get_class($this).", метод: ".__FUNCTION__.", ".$e."\n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
 			throw new ExceptionForUser("В настоящий момент сервис недоступен. Пожалуйста, попробуйте войти на сайт позднее", 500);
-//			return;		
-		}		
+		}
+		//когда авторизация прошла успешно отправляем клиенту адрес для редиректа страницы
         $this->status = "ok";
-        $this->data = "";
+        $this->data = $auth_result;		
+        $this->code = "";
     }
-
+	
+	//обеспечивает выход пользователя с сайта
     public function logout()
     {	
         $user = new User();
         $user->logout();
+		//когда выход с сайта прошел успешно в data отправляем клиенту адрес для редиректа страницы		
         $this->status = "ok";
-        $this->data = "../inc/index.inc.php";
+        $this->code = "../inc/index.inc.php";
     }
 
+	//обеспечивает регистрацию пользователя
     public function register()
     {
-        $content = $this->getRequestParam("json_string");
+         //разбираем полученную от клиента строку-запрос
+		$content = $this->getRequestParam("json_string");
 		$arr = $this->handleContent($content);
-
 		$username = $arr->username;
         $password = $arr->password;
 
+		//если по каким-то причинам проверки на клиенте отключены, и пришло пустое имя пользователя(e-mail) или пароль вернем ошибку
         if (empty($username)) {
-            $this->setFieldError("Email", "Enter the username");
+            $this->setFieldError("Email", "Введите e-mail");
             return;
         }
 
         if (empty($password)) {
-            $this->setFieldError("Password", "Enter the password");
+            $this->setFieldError("Password", "Введите пароль");
             return;
         }
 
         $user = new User($username, $password);
-		$activation = md5($username.time()); // encrypted email+timestamp
+		//уникальный код активации, который вставляется в письмо, направляемое пользователю для подтверждения e-mail
+		$activation = md5($username.time());
 		
         try {
+			//пробуем создать нового пользователя в БД
             $new_user_id = $user->create($activation);
         } catch (ExceptionForUser $e) {
+			//исключение на случай, когда пользователь прислал неверные данные (такой логин уже зарегистрирован в БД)			
             $this->setFieldError("Email", $e->getMessage());
             return;
         } catch (Exception $e) {
-			file_put_contents(SERVER_ERROR, "Не удалось созадать нового пользователя: ".$username.", класс: ".get_class($this).", функция: ".__FUNCTION__.", ".$e."\n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
+			//исключение на случай, когда возникли какие-то проблемы не по вине клиента(ошибка сервера, ошибка в коде и т.п.)
+			file_put_contents(SERVER_ERROR, "Не удалось созадать нового пользователя: ".$username.", класс: ".get_class($this).", метод: ".__FUNCTION__.", ".$e."\n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
 			throw new ExceptionForUser("В настоящий момент регистрация новых пользователей не осуществляется. Пожалуйста, попробуйте зарегистрироваться позднее", 500);
-//			return;		
 		}		
 		$to = 'torysk@mail.ru';
+		
+		//если не удалось отправить пользователю письмо для подтверждения e-mail
 		if (!$this->sendMail($to, $activation)){
-			//если не удалось передать письмо с подтверждением на отправку
 			file_put_contents(SERVER_ERROR, "Ошибка при отправке пользователю ".$to.", код активации ".$activation." письма с подтверждением регистрации на сайте \n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
-		}			
+		}
+		//когда первый этап регистрации прошел успешно в data отправляем клиенту адрес для редиректа страницы
 		$this->status = "ok";		
-		$this->data = "../inc/thanksForRegister.inc.php";		
+		$this->code = "../inc/thanksForRegister.inc.php";		
     }
 }
-
+//т.к. своего конструктора у AuthorizationAjaxRequest нет, используется конктруктор класса-родителя (AjaxRequest в файле AjaxRequest.class.php)
 $ajaxRequest = new AuthorizationAjaxRequest($_REQUEST);
+//отправка ответа клиенту
 $ajaxRequest->showResponse();
+
+/*Псевдо-переменная $this доступна в том случае, если метод был вызван в контексте объекта. $this является ссылкой на вызываемый объект. Обычно это тот объект, которому принадлежит вызванный метод, но может быть и другой объект, если метод был вызван статически из контекста другого объекта. */

@@ -5,6 +5,7 @@ body {
 	color: 5e5e5e;
 	font-family: Arial, Helvetica, sans-serif;
 	border-top: 2px solid #2A4F6F;
+	position: relative;
 }
 h1 {
 	font-size: 30px;
@@ -70,7 +71,7 @@ table {
     text-align:center;
 }
 
-#form {
+#exportForm {
 	padding: 20px;
 	border: 1px dotted;
 	border-radius: 10px;
@@ -103,21 +104,23 @@ table {
 	label {
 		margin-top: 10px;
 	}
+	.bs-docs-sidebar {
+		display: none;
+	}
 }
-
 
 /*расстояние от верха страницы до бокового меню*/ 
 #sidebar.affix {
     top: 100px;
 }
-/* sidebar */
+/* боковое меню */
 .bs-docs-sidebar {
     padding-left: 20px;
     margin-top: 20px;
     margin-bottom: 20px;
 }
 
-/* all links */
+/* ссылки в боковом меню */
 .bs-docs-sidebar .nav>li>a {
     color: #999;
     border-left: 2px solid transparent;
@@ -126,7 +129,7 @@ table {
     font-weight: 400;
 }
 
-/* nested links */
+/* вложенные ссылки */
 .bs-docs-sidebar .nav .nav>li>a {
     padding-top: 1px;
     padding-bottom: 1px;
@@ -134,7 +137,7 @@ table {
     font-size: 12px;
 }
 
-/* active & hover links */
+/* active и hover*/
 .bs-docs-sidebar .nav>.active>a, 
 .bs-docs-sidebar .nav>li>a:hover, 
 .bs-docs-sidebar .nav>li>a:focus {
@@ -143,24 +146,24 @@ table {
     background-color: transparent;  
     border-left-color: #563d7c; 
 }
-/* all active links */
+/* все ссылки active */
 .bs-docs-sidebar .nav>.active>a, 
 .bs-docs-sidebar .nav>.active:hover>a,
 .bs-docs-sidebar .nav>.active:focus>a {
     font-weight: 700;
 }
-/* nested active links */
+/* вложенные ссылки active */
 .bs-docs-sidebar .nav .nav>.active>a, 
 .bs-docs-sidebar .nav .nav>.active:hover>a,
 .bs-docs-sidebar .nav .nav>.active:focus>a {
     font-weight: 500;
 }
 
-/* hide inactive nested list */
+/* прячем неактивный вложенный список */
 .bs-docs-sidebar .nav ul.nav {
     display: none;           
 }
-/* show active nested list */
+/* показываем вложенный список при нажатии */
 .bs-docs-sidebar .nav>.active>ul.nav {
     display: block;           
 }

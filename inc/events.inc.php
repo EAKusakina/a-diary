@@ -3,7 +3,7 @@ if($ajax) {
   echo '<section class="personalPage">
 	<h1>Создание, редактирование и удаление событий</h1>
 
-    <form id="form" action="#" method="POST">
+    <form id="newEvent" action="#" method="POST">
 	<div class="row">	
 		<div class="col-md-2 col-sm-4">
 			<label class="control-label" for="datepicker">Дата</label>
@@ -87,7 +87,7 @@ if($ajax) {
 			<h2 class = "mar">Список событий за выбранную дату</h2>
 		</div>
 		<div class="col-md-2 col-sm-2 col-sm-offset-1 mar">
-			<input id="refresh" type="submit" value="Обновить список" class="btn btn-info"/>
+			<input id="refresh" type="submit" value="Сохранить изменения" class="btn btn-info"/>
 		</div>
 	</div>
     <div id="todos" class="col-md-12 table-responsive"></div>

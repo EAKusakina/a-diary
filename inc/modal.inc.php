@@ -9,7 +9,7 @@ if($ajax) {
 						<h4 class="modal-title">Регистрация</h4>
 					</div>
 					<div class="modal-body">
-						<form class="form-horizontal enter" role="form" >
+						<form id="registerForm" class="form-horizontal enter" role="form" >
 							<div class="form-group has-feedback">
 								<label for="Email" class="col-sm-4 control-label">E-mail:</label>   
 								<div class="col-sm-7">

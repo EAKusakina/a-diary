@@ -1,3 +1,4 @@
+//Функционал для регистрации на сайте, входа(авторизации) и выхода с сайта(logout)
 
 // генерирует случайные числа в диапазоне от m до n
 function randomNumber(m,n){
@@ -6,7 +7,7 @@ function randomNumber(m,n){
     return Math.floor( Math.random() * (n - m + 1) ) + m;
 };
 
-// проверяет валидность переданного элемента формы
+// проверяет валидность элемента формы регистрации или формы авторизации
 function myCheckValidity(elem, secretSum){
 	switch (elem.name) {
 		case "Email":
@@ -17,34 +18,18 @@ function myCheckValidity(elem, secretSum){
 			//если пароль длиннее 5 символов
 			if (elem.value.length>5){
 				var repeatPassword = $('input[name="repeatPassword"]');
-				//и поле Повторите пароль пока не заполнено
+				//и поле "Повторите пароль" пока не заполнено
 				if (repeatPassword.val() ==="" || repeatPassword.val() == undefined)
 					return true;
 				//иначе проверим совпадение паролей
-				var formGroup = repeatPassword.parents('.form-group');
-				if (elem.value === repeatPassword.val()){
-					formGroup.addClass('has-success').removeClass('has-error');
+				if (elem.value === repeatPassword.val())
 					return true;
-				}
-				else {
-					if ($('input[name="repeatPassword"]').val()!=="")
-						formGroup.addClass('has-error').removeClass('has-success');
-					return false;
-				}
 			}
 			break;
 		case "repeatPassword":
-			var modalPassword = $('#registerModal input[name="Password"]');
-			var formGroup = modalPassword.parents('.form-group');
-			if (elem.value === modalPassword.val() && elem.value !== ""){
-				if (modalPassword.val().length>5){
-					formGroup.addClass('has-success').removeClass('has-error');
-				}
+			var firstPassword = $('input[name="Password"]');
+			if (elem.value === firstPassword.val() && firstPassword.val().length>5)
 				return true;
-			}
-			else{
-				formGroup.addClass('has-error').removeClass('has-success');
-			}
 			break;
 		case "ControlSum":
 			if ($.md5(+elem.value) == secretSum)
@@ -54,22 +39,20 @@ function myCheckValidity(elem, secretSum){
 	return false;
 }
 
-//обработчик полученного от сервера объекта, выводит в форму ответ сервера
-function validateByAjax (data, $form) {
+//обработчик полученного от сервера ответа
+function serverAnswerHandler (data, $form) {
 	//получили поле формы для вывода ошибок
 	var $mainErrorContainer = $('body').find($form.selector + ' .main-error');
-	//если сервер вернул статус OK
+	//если сервер вернул статус OK т.е. пользователь успешно зарегистрировался/авторизовался/вышел с сайта
 	if (data.status === 'ok') {
-		//если пользователь в этот раз ввел все правильно, спрячем поле для ошибок
-		$mainErrorContainer.html(data.message).hide();
-		// если с сервера пришел непустой адрес для редиректа
-		if (data.data !=="")
-			//перейдем по нему
-			window.location.href = data.data;
-		else
+		// если с сервера пришел непустой адрес для редиректа (т.е. была регистрация или выход с сайта)
+		if (data.code !=="") {
+			window.location.href = data.code;
+		} else {//была авторизация
 			//перезагрузим страницу
 			window.location.reload();
-	} else if (data.status === 'err') {
+		}
+	} else {
 		//выводим ошибку (например: "Неверное имя пользователя или пароль")
 		$mainErrorContainer.html(data.message).show();
 	}
@@ -78,12 +61,11 @@ function validateByAjax (data, $form) {
 //функция отправки данных на сервер
 function sendData(postArray, action, $form) {
 	var ajaxObj = new AjaxRequestParent();
-	var url = ajaxObj.accessToData;
+	var url = ajaxObj.authUrl;
 	var json_string = JSON.stringify({"username": postArray['Email'], "password": postArray['Password'], "rememberMe": postArray['Remember']});
-//	var json_string = "{ 'bar': 'baz' }";
 	$.when(ajaxObj.requestData(url, action, json_string)).done(
 		function (response) {
-console.log(response);//выводим ответ сервера
+			//проверяем тип ответа сервера
 			if (typeof response !== 'object') {
 				try {
 					response = JSON.parse(response);
@@ -93,17 +75,15 @@ console.log(response);//выводим ответ сервера
 					return;
 				}
 			}	
-			validateByAjax(response, $form);
+			serverAnswerHandler(response, $form);
 		}).fail(function (error) {
 			/*из-за ошибки мы не можем зарегистрировать/авторизовать пользователя либо позволить пользователю выйти (logout) с сайта
 			*/
-//console.log($form.attr('id'));
-// $form.prop('tagName')
 			var errorText = error.responseText;
 
 			//если открывали модально окно для регистрации, закроем его
-			if ($form.attr('id').indexOf('register')>= 0) {
-				$form.modal('hide');
+			if ($('body').find($form.selector).attr('id').indexOf('register')>= 0) {
+				$('body').find($form.selector).modal('hide');
 				errorText = 'В связи с техническими неполадками регистрация новых пользователей в настоящий момент не производится. Попробуйте зайти позднее.';
 			}
 
@@ -111,10 +91,8 @@ console.log(response);//выводим ответ сервера
 				alert(errorText);
 			else
 				alert('В связи с техническими неполадками сервис временно недоступен. Попробуйте зайти позднее.');
-//alert("Ошибка при запросе к серверу: "+ JSON.stringify(error, null, 2));
-console.log(error);
 		}).always(function (args) {
-			//снимаем блокировку с элементов формы
+			//снимаем блокировку с input-ов формы
 			var $formInputs = $('body').find($form.selector + ' input');
 			var $formButtons = $form.find('button');
 			$formInputs.removeAttr('readonly');			
@@ -122,6 +100,7 @@ console.log(error);
 		});
 }
 
+//блокирует input-ы формы (на время отправки и получения данных с сервера)
 function blockElementsForm ($form) {
 	//получили все input, textarea, select
 	var $formInputs = $('body').find($form.selector + ' input');
@@ -136,22 +115,16 @@ function blockElementsForm ($form) {
 
 
 $(document).ready(function() {
-/*Большая часть селекторов в данном скрипте получается через $('body') т.к. форма для регистрации подгружается через Ajax (а отличие от формы авторизации, которая сразу находится на странице); при этом большинство функций обработки данных у этих форм общие*/	
+/*Большая часть селекторов в данном скрипте получается через $('body') т.к. форма для регистрации находится в модальном окне, подгружаемом через Ajax (в отличие от формы авторизации, которая сразу находится на странице); при этом функции валиации данных, отправки данных на сервер и обработки ответа сервера у этих форм общие*/	
 	//число для формы регистрации (пользователь должен ввести сумму чисел, чтобы зарегистрироваться)
 	var secretSum = 0;
 	//модальное окно для регистрации
-	var $formRegister = $('#registerModal');
+	var $windowRegister = $('#registerModal');
 	//форма авторизации
 	var $formAuthorization = $('#loginForm');
 
-	$('body').on('show.bs.modal', $formRegister, function (e) {
-		$(e.target).find('[data-toggle="tooltip"]').tooltip({
-				//чтобы подсказки для формы регистрации, которая расположена в модальном окне, отображались справа от input-ов (были видны)
-				placement:	"right",
-				//ручная обработка нужна, чтобы управлять событиями show/hide
-				trigger:	"manual",
-		});
-		//при открытии модального окна для регистрации показываем числа, которые пользователь должен сложить
+	//при открытии модального окна для регистрации показываем числа, которые пользователь должен сложить
+	$('body').on('show.bs.modal', $windowRegister, function (e) {
 		var aspmA = randomNumber(1,23); // генерируем число
 		var aspmB = randomNumber(1,23); // генерируем число
 		var sumAB = aspmA + aspmB;  // вычисляем сумму
@@ -160,11 +133,18 @@ $(document).ready(function() {
 			return aspmA + ' + ' + aspmB + ' = ';
 		});
 		secretSum = $.md5(sumAB);
+		
+		$(e.target).find('[data-toggle="tooltip"]').tooltip({
+				//чтобы подсказки для формы регистрации, которая расположена в модальном окне, отображались справа от input-ов (были видны)
+				placement:	"right",
+				//ручная обработка нужна, чтобы управлять событиями show/hide
+				trigger:	"manual",
+		});
 	});
 
 	//при закрытии модального окна очищаем его поля
-	$('body').on('hide.bs.modal', $formRegister, function () {
-		$('body').find('#registerModal input').each(function() {
+	$('body').on('hide.bs.modal', $windowRegister, function (e) {
+		$(e.target).find('input').each(function() {
 			this.value = "";
 			var formGroup = $(this).parents('.form-group');
 			formGroup.removeClass('has-success').removeClass('has-error');
@@ -176,31 +156,28 @@ $(document).ready(function() {
 	});
 
 	//проверка вводимых в формы для регистрации и авторизации данных
-	$('body').on("input change", ".enter :input", function() {
+	$('body').on("input", ".enter :input", function(e) {
 			$('.main-error').hide();
-			//найти предков, которые имеют класс .form-group, для установления success/error
-			var formGroup = $(this).parents('.form-group');
-			//для валидации данных используем собственную функцию myCheckValidity
-			if (myCheckValidity(this, secretSum)) {
-				//добавить к formGroup класс .has-success, удалить has-error
-				formGroup.addClass('has-success').removeClass('has-error');
-				$(this).tooltip('hide');
-			} else {
-				//добавить к formGroup класс .has-error, удалить .has-success
-				formGroup.addClass('has-error').removeClass('has-success');
-				$(this).tooltip('show');
+			//проверка длины нужна т.к. иначе в IE данная функция вызывается просто при открытии формы регистрации и, соответственно, поля сразу подсвечены красным и выведены подсказки (еще до того, как пользователь ввел хотя бы символ) 
+			if (this.value.length > 0) {
+				//найти предков, которые имеют класс .form-group, для установления success/error
+				var formGroup = $(this).parents('.form-group');
+				//для валидации данных используем собственную функцию myCheckValidity
+				if (myCheckValidity(this, secretSum)) {
+					formGroup.addClass('has-success').removeClass('has-error');
+					$(this).tooltip('hide');
+				} else {
+					formGroup.addClass('has-error').removeClass('has-success');
+					$(this).tooltip('show');
+				}
 			}
 	});
-
-//	$('body').find($form.selector + ' input')
 
 	$formAuthorization.find('[data-toggle="tooltip"]').tooltip({
 			//чтобы подсказки для формы авторизации, которая расположена в верхнем navbar, отображались под input-ами (были видны)
 			placement:	"bottom",
 			trigger:	"manual",
 	});
-
-//ghb клике вне формы мелькает тоолтип???
 
 	//прячем подсказки по клику или движению мыши
 	$('body').on('click mouseover', function (e) {
@@ -221,10 +198,10 @@ $(document).ready(function() {
 		*/
 		e.preventDefault();
 		var formValid = true;
-		// массив для сохранения корректных input-ов формы для последующей передачи на сервер
+		// массив для сохранения корректных данных из формы для последующей передачи на сервер
 		var postArray = [];
 		//проверка корректности заполнения полей формы
-		$('body').find('#registerModal input').each(function() {
+		$('body').find($windowRegister.selector+' input').each(function() {
 			var elemName = $(this).attr('name');
 			//найти предков, которые имеют класс .form-group, для установления success/error
 			var formGroup = $(this).parents('.form-group');
@@ -238,14 +215,24 @@ $(document).ready(function() {
 		});
 		//если форма валидна, то
 		if (formValid) {
-			//блокируем элменты формы на то время, пока она отправляется, чтобы пользователь уже ничего больше не мог ввести/нажать 
-			blockElementsForm($formRegister);
-			sendData(postArray, "register", $formRegister);
+			//блокируем элменты формы на то время, пока она отправляется, чтобы пользователь ничего больше не мог ввести/нажать 
+			blockElementsForm($windowRegister);
+			//отправляем данные на сервер
+			sendData(postArray, "register", $windowRegister);
+		}
+	});
+	
+	/*поскольку $("body").on("submit", $registerForm, function(e) {...}); видимо ввиду динамической подгрузки этой формы через AJAX не работает, и отправка данных происходит по клику на кнопку (см. функцию выше), отдельно обработаем отправку данных формы по нажатию на Enter*/
+	$(window).keydown(function(event){
+		//ловим событие нажатия клавиши
+		if(event.keyCode == 13 && $('body').attr("class")=="modal-open") {	//если это Enter и открыто модальное окно
+			event.preventDefault();
+			$('#checkIn').click();
 		}
 	});
 
 	//обработка отправки формы для авторизации на сайте
-	$("body").on("click", "#logIn", function(e) {
+	$("body").on("submit", $formAuthorization, function(e) {
 		e.preventDefault();
 		var formValid = true;
 		var postArray = [];
@@ -279,6 +266,8 @@ $(document).ready(function() {
 	$("#exit").on("click",function(e) {
 		e.preventDefault();
 		var arr = [];
+		//отключаем создание cookie при перезагрузке страницы, определенное в init.js, чтобы при загрузке страницы не было ни кук, ни userID с сервера 
+		$(window).off('unload');
 		sendData(arr, "logout", $formAuthorization);
 	});
 

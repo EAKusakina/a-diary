@@ -1,4 +1,5 @@
 <?php
+//содержит функции и класс для обработки ошибок и исключений
 
 // определеяем уровень протоколирования ошибок
 error_reporting(E_ALL | E_STRICT);
@@ -15,12 +16,14 @@ set_error_handler("error_handler");
 // регистрируем функцию, которая выполняется после завершения работы скрипта (например, после фатальной ошибки)
 register_shutdown_function('fatal_error_handler');
 
+//определяем константы, содержащие имена логов ошибок
 define ("SERVER_ERROR", "server_error.txt");
 define ("CLIENT_ERROR", "client_error.txt");
 
-//тут указываем папки, в которых file_put_contents будет искать наши файлы с логами ошибок (нужно для фатальных ошибок, которые по умолчанию записывались в C:\OpenServer\modules\http\Apache-2.2\bin)
-ini_set('include_path', 'C:\OpenServer\domains\food.diary\php;.');
+//тут указываем папку, в которой file_put_contents и file_get_contents будут искать файлы с логами ошибок и доступом к БД 
+ini_set('include_path', 'php');
 
+//обработчик ошибок (используется вместо внутреннего обработчика PHP)
 function error_handler($errno, $errstr, $errfile, $errline)
 {
     // если ошибка попадает в отчет (при использовании оператора "@" error_reporting() вернет 0)
@@ -43,20 +46,21 @@ function error_handler($errno, $errstr, $errfile, $errline)
             8192 => 'E_DEPRECATED',
             16384 => 'E_USER_DEPRECATED',
 		);
-        // выводим свое сообщение об ошибке
+        //формируем свое сообщение об ошибке
         $e = $errors[$errno].", текст: $errstr (в $errfile на $errline строке) \n";
 		$path = SERVER_ERROR;
 		if (in_array($errno, [1, 4, 16, 64]))
 			$e = "Фатальная ошибка: ". $e;
+		//выводим ошибки в лог
 		file_put_contents($path, $e."\n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
     }
-
     // не запускаем внутренний обработчик ошибок PHP
-    return TRUE;
+    return true;
 }
 
-//функция для перехвата фатальных ошибок
+//перехватывает фатальные ошибки
 function fatal_error_handler() {
+	//получаем последнюю ошибку
     $error = error_get_last();
     if (
         // если в коде была допущена ошибка
@@ -70,11 +74,12 @@ function fatal_error_handler() {
         ob_end_clean();
 		throw new ExceptionForUser("Сервер находится на техническом обслуживании, попробуйте повторить операцию позднее", 500);
     } else  {
-        // отправка (вывод) буфера и его отключение
+        // отправка (вывод) буфера и его отключение 
         ob_end_flush();
     }	
 }
 
+//класс для отправки пользователю ошибок, возникших из-за проблем на сервере
 class ExceptionForUser extends Exception {
 
 	public $message;
