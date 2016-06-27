@@ -32,8 +32,7 @@ function openPage(namePage){
 				//для страницы "Создание, редактирование и удаление категорий"
 				if (namePage.indexOf('categories')>= 0)
 					$('#data').html(response).trigger('loadCategories');
-				//для страницы "Экспорт событий в Excel"
-			fghjkl	
+				//для страницы "Экспорт событий в Excel"	
 				if (namePage.indexOf('export')>= 0)
 					$('#data').html(response).trigger('export');
 			}
