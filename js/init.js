@@ -33,7 +33,6 @@ function openPage(namePage){
 				if (namePage.indexOf('categories')>= 0)
 					$('#data').html(response).trigger('loadCategories');
 				//для страницы "Экспорт событий в Excel"
-				//пролджэ
 				if (namePage.indexOf('export')>= 0)
 					$('#data').html(response).trigger('export');
 			}
