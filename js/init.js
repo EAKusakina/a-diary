@@ -37,6 +37,7 @@ function openPage(namePage){
 					$('#data').html(response).trigger('export');
 console.log("new branch");
 			}
+	console.log('dehdwjhdwjhdjwhdwjdh');		
 		} else {
 			//если получили html модального окна
 			if (response.indexOf('registerModal') >= 0 ) {
