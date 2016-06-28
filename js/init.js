@@ -35,6 +35,7 @@ function openPage(namePage){
 				//для страницы "Экспорт событий в Excel"	
 				if (namePage.indexOf('export')>= 0)
 					$('#data').html(response).trigger('export');
+console.log("new branch");
 			}
 		} else {
 			//если получили html модального окна
