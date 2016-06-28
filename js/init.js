@@ -36,6 +36,7 @@ function openPage(namePage){
 				if (namePage.indexOf('export')>= 0)
 					$('#data').html(response).trigger('export');
 			}
+	console.log('dehdwjhdwjhdjwhdwjdh');		
 		} else {
 			//если получили html модального окна
 			if (response.indexOf('registerModal') >= 0 ) {
