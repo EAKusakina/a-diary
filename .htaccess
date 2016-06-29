@@ -1,1 +1,63 @@
 ErrorDocument 404 /inc/pageNotFound.inc.php
+# https://habrahabr.ru/post/154643/
+#У Апача есть два модуля сжатия. 
+# Оба не являются модулями по умолчанию, поэтому необязательно могут присутствовать у вашего провайдера. 
+# Но как показала практика у 99% провайдеров один из них стоит. Наиболее распространен mod_deflate. Чтобы его с помощью сжимать весь контент на вашем сайте добавьте в .htaccess следующие строки:
+<ifModule mod_deflate.c>
+	AddOutputFilterByType DEFLATE text/html text/plain text/xml application/xml application/xhtml+xml text/css text/javascript application/javascript application/x-javascript
+</ifModule>
+#Как видите мы должны перечислить mime type файлов, которые следует подвергать сжатию. 
+# Сюда можно добавить и видео и картинки, но толку это даст мало. Потому что jpeg или gif уже сами по себе являются сжатыми форматами. Также как avi или flv. Вы фактически нечего не выиграете указав их.
+# Второй менее популярный модуль это mod_gzip, Чтобы включить сжатие с его помощью добавьте вот такие строчки:
+<IfModule mod_gzip.c>
+	mod_gzip_on         Yes
+	mod_gzip_dechunk    Yes
+	mod_gzip_item_include file		\.(html?|txt|css|js|php|pl)$
+	mod_gzip_item_include mime		^text\.*
+	mod_gzip_item_include mime		^application/x-javascript.*
+	mod_gzip_item_exclude mime		^image\.*
+	mod_gzip_item_exclude rspheader	^Content-Encoding:.*gzip.*
+</IfModule>
+# mod_headers и mod_expires могут установить заголовки в ответ сервера и подсказать браузеру, что и как нужно кешировать. 
+# Один из модулей обычно стоит у провайдера, но как и в случае с любым модулем, который не входит в стандартную сборку Апача, 100% гарантии никто вам не даст. 
+# Поэтому снова во избежание 500й ошибки указываем условия для каждого из модулей.
+<ifModule mod_headers.c>
+	#кэшировать html и htm файлы на один день
+	<FilesMatch "\.(js|html|htm)$">
+		Header set Cache-Control "max-age=43200"
+	</FilesMatch>
+	#кэшировать css и текстовые файлы на одну неделю
+	<FilesMatch "\.(css|txt)$">
+		Header set Cache-Control "max-age=604800"
+	</FilesMatch>
+	#кэшировать флэш и изображения на месяц
+	<FilesMatch "\.(flv|swf|ico|gif|jpg|jpeg|png)$">
+		Header set Cache-Control "max-age=2592000"
+	</FilesMatch>
+	#отключить кэширование
+	<FilesMatch "\.(pl|php|cgi|spl|scgi|fcgi)$">
+		Header unset Cache-Control
+	</FilesMatch>
+</IfModule>
+#Во второй секции где идут условия для mod_expires я именно так и делаю - для php ставлю небольшой интервал кеширования.
+<ifModule mod_expires.c>
+	ExpiresActive On
+	#по умолчанию кеш в 5 секунд
+	ExpiresDefault "access plus 300 seconds"
+	#кэшировать флэш и изображения на месяц
+	ExpiresByType image/x-icon "access plus 2592000 seconds"
+	ExpiresByType image/jpeg "access plus 2592000 seconds"
+	ExpiresByType image/png "access plus 2592000 seconds"
+	ExpiresByType image/gif "access plus 2592000 seconds"
+	ExpiresByType application/x-shockwave-flash "access plus 2592000 seconds"
+	#кэшировать css и текстовые файлы на одну неделю
+	ExpiresByType text/css "access plus 604800 seconds"
+	#кэшировать html и htm файлы на один день
+	ExpiresByType text/html "access plus 43200 seconds"
+        ExpiresByType text/javascript "access plus 43200 seconds"
+	ExpiresByType application/javascript "access plus 43200 seconds"
+	ExpiresByType application/x-javascript "access plus 43200 seconds"
+	#кэшировать xml файлы на десять минут
+	ExpiresByType application/xhtml+xml "access plus 600 seconds"
+</ifModule>
+	
