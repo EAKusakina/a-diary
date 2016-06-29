@@ -101,10 +101,9 @@ class AuthorizationAjaxRequest extends AjaxRequest
 			file_put_contents(SERVER_ERROR, "Не удалось созадать нового пользователя: ".$username.", класс: ".get_class($this).", метод: ".__FUNCTION__.", ".$e."\n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
 			throw new ExceptionForUser("В настоящий момент регистрация новых пользователей не осуществляется. Пожалуйста, попробуйте зарегистрироваться позднее", 500);
 		}		
-		$to = 'torysk@mail.ru';
 		
 		//если не удалось отправить пользователю письмо для подтверждения e-mail
-		if (!$this->sendMail($to, $activation)){
+		if (!$this->sendMail($username, $activation)){
 			file_put_contents(SERVER_ERROR, "Ошибка при отправке пользователю ".$to.", код активации ".$activation." письма с подтверждением регистрации на сайте \n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
 		}
 		//когда первый этап регистрации прошел успешно в data отправляем клиенту адрес для редиректа страницы

@@ -74,7 +74,7 @@ module.exports = function (grunt) {
 			scripts: { 
 				files: ['js/*.js'],
 				//какие задачи должны запуститься, если изменяются файлы, указанные в files; указываем те же задачи, что и в default
-				tasks: ['concat', 'uglify']
+				tasks: ['concat', 'uglify', 'removelogging']
 			},
 			css: {
 				files: ['css/*.css'],

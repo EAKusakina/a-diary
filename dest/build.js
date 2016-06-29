@@ -4161,7 +4161,7 @@ function openPage(namePage){
 				//для страницы "Создание, редактирование и удаление категорий"
 				if (namePage.indexOf('categories')>= 0)
 					$('#data').html(response).trigger('loadCategories');
-				//для страницы "Экспорт событий в Excel"
+				//для страницы "Экспорт событий в Excel"	
 				if (namePage.indexOf('export')>= 0)
 					$('#data').html(response).trigger('export');
 			}
@@ -4591,9 +4591,8 @@ $(document).ready(function() {
 		db_id: 0,
 		user_id: 0,
 		date: new Date(),
-		hours: new Date().getHours(),
-		//минуты округляем в меньшую сторону с учетом того, что выбор минут предоставляется с 5 минутным интервалом (0, 5, 10 и т.д.)  
-		minutes: (new Date().getMinutes()- new Date().getMinutes()%5),
+		hours: "",
+		minutes: "",
 		description: "",
 		id_category: 0,
 		category: "",
@@ -5127,18 +5126,18 @@ $(document).ready(function() {
 	//Методы дочернего конструктора для категорий - в прототип 
 	
 	//создает список опций для категорий
-	Categories.prototype.createCategories = function (){
-		var text = ""; 
+	Categories.prototype.createCategories = function (val){
+		var text = "", tmp; 
 		//перебираем все категории и создаем под них options
-		for (var i in this.obj) {
-			if ((this.obj[i]['category'] == item.category) || (this.obj[i]['selected']==1 && item.category==""))
-				text += "<option id ='"+i+"' value='" + this.obj[i]['category'] + "' selected>" + this.obj[i]['category'] + "</option>";	
+		for (var i in this.obj) {			
+			if ((this.obj[i]['category'] == val) || (this.obj[i]['selected']==1 && !val))
+				tmp = new Option (this.obj[i]['category'], this.obj[i]['category'], true, true);	
 			else
-				text += "<option id ='"+i+"' value='" + this.obj[i]['category'] + "'>" + this.obj[i]['category'] + "</option>";	
+				tmp = new Option (this.obj[i]['category'], this.obj[i]['category']);
+			text  = text + tmp.outerHTML;
 		}
 		return text;
 	}
-	
 	//выводит список категорий на страницу	
 	Categories.prototype.showCategories = function (){
 		var listOfCategories = this.createCategories();
@@ -5257,6 +5256,7 @@ $(document).ready(function() {
 		//инициализация элементов формы newEvent при загрузке страницы
 		$('#datepicker').datepicker('setDate', item.date);
 		$('#hours').val(function(){
+			item.hours = new Date().getHours();
 			var hours = item.hours;
 			if (hours < 10){
 				hours = "0"+hours;
@@ -5264,7 +5264,8 @@ $(document).ready(function() {
 			return hours;	
 		});
 		$('#minutes').val(function(){
-			//получаем минуты с точнностью до 5 минут с округлением в меньшую сторону (если сейчас 58 минут, то вернет 55)
+			//минуты округляем в меньшую сторону с учетом того, что выбор минут предоставляется с 5 минутным интервалом (0, 5, 10 и т.д.)  
+			item.minutes = new Date().getMinutes()- new Date().getMinutes()%5;
 			var min = item.minutes;
 			if (min < 10){
 				min = "0"+min;
