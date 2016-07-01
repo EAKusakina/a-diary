@@ -4261,10 +4261,7 @@ $(document).ready(function() {
 		}).done(function (response) {			
 			//обработчик ответа сервера responseHandler находится в proto.js
 			var resp = ajaxObj.responseHandler(response);			
-			userID = +getCookie("userID");
-			if (!userID) {//проверка на пустые строки(""), null, undefined, false, 0 и NaN
-				userID = resp;
-			}
+			userID = resp;
 			//если пользователь авторизован
 			if (userID>0) {
 				//спрячем пункты navbar, которые показываются неавторизованным пользователям ("Зарегистрироваться", форма для входа на сайт)
@@ -4301,12 +4298,6 @@ $(document).ready(function() {
 	$('body').scroll(function(){
 		$('body').scrollspy('refresh');
 	});
-	//для coхранения userID во время перезагрузки страницы (нужно при работе нескольких пользователей в одном браузере) 
-	$(window).on('unload', function() {
-		var date = new Date(new Date().getTime() + 3 * 1000);
-		document.cookie ="userID=" + userID + "; expires=" + date.toUTCString();
-	});
-	
 });
 
 
@@ -4584,8 +4575,6 @@ $(document).ready(function() {
 	$("#exit").on("click",function(e) {
 		e.preventDefault();
 		var arr = [];
-		//отключаем создание cookie при перезагрузке страницы, определенное в init.js, чтобы при загрузке страницы не было ни кук, ни userID с сервера 
-		$(window).off('unload');
 		sendData(arr, "logout", $formAuthorization);
 	});
 

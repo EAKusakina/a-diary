@@ -132,10 +132,7 @@ $(document).ready(function() {
 		}).done(function (response) {			
 			//обработчик ответа сервера responseHandler находится в proto.js
 			var resp = ajaxObj.responseHandler(response);			
-			userID = +getCookie("userID");
-			if (!userID) {//проверка на пустые строки(""), null, undefined, false, 0 и NaN
-				userID = resp;
-			}
+			userID = resp;
 			//если пользователь авторизован
 			if (userID>0) {
 				//спрячем пункты navbar, которые показываются неавторизованным пользователям ("Зарегистрироваться", форма для входа на сайт)
@@ -172,12 +169,6 @@ $(document).ready(function() {
 	$('body').scroll(function(){
 		$('body').scrollspy('refresh');
 	});
-	//для coхранения userID во время перезагрузки страницы (нужно при работе нескольких пользователей в одном браузере) 
-	$(window).on('unload', function() {
-		var date = new Date(new Date().getTime() + 3 * 1000);
-		document.cookie ="userID=" + userID + "; expires=" + date.toUTCString();
-	});
-	
 });
 
 

@@ -23,12 +23,6 @@ include_once 'ErrorsAndExceptions.php';//файл для обработки ош
 			//время жизни уникального идентификатора сессии session_id
 			$idLifetime = 60;
 			session_set_cookie_params(0, '/', '', false, true);
-			//используем имена сессиий, чтобы несколько пользователей могли работать в одном браузере
-			if ($this->user_id or $_COOKIE['last_visitor']) {
-				if (!isset($_COOKIE['last_visitor']))
-					setcookie('last_visitor', $this->user_id);
-				session_name('mySession_'.($this->user_id or $_COOKIE['last_visitor']));
-			}
 			ini_set('session.cookie_lifetime', 0);
 			//session_start() создаёт сессию (или продолжает текущую на основе session id, переданного через GET-переменную или куку).
 			//если не удалось запустить сессию из-за ошибки сервера

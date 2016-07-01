@@ -266,8 +266,6 @@ $(document).ready(function() {
 	$("#exit").on("click",function(e) {
 		e.preventDefault();
 		var arr = [];
-		//отключаем создание cookie при перезагрузке страницы, определенное в init.js, чтобы при загрузке страницы не было ни кук, ни userID с сервера 
-		$(window).off('unload');
 		sendData(arr, "logout", $formAuthorization);
 	});
 

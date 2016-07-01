@@ -49,6 +49,7 @@ class AuthorizationAjaxRequest extends AjaxRequest
 			file_put_contents(SERVER_ERROR, "Не удалось авторизовать пользователя: ".$username.", класс: ".get_class($this).", метод: ".__FUNCTION__.", ".$e."\n", FILE_APPEND | LOCK_EX | FILE_USE_INCLUDE_PATH);
 			throw new ExceptionForUser("В настоящий момент сервис недоступен. Пожалуйста, попробуйте войти на сайт позднее", 500);
 		}
+		
 		//когда авторизация прошла успешно отправляем клиенту адрес для редиректа страницы
         $this->status = "ok";
         $this->data = $auth_result;		
