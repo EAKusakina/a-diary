@@ -167,3 +167,7 @@ table {
 .bs-docs-sidebar .nav>.active>ul.nav {
     display: block;           
 }
+
+.tooltip-inner {
+    min-width: 150px; //минимальная ширина подсказки 
+}

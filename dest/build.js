@@ -5124,14 +5124,13 @@ $(document).ready(function() {
 	
 	//создает список опций для категорий
 	Categories.prototype.createCategories = function (val){
-		var text = "", tmp; 
+		var text = ""; 
 		//перебираем все категории и создаем под них options
 		for (var i in this.obj) {			
 			if ((this.obj[i]['category'] == val) || (this.obj[i]['selected']==1 && !val))
-				tmp = new Option (this.obj[i]['category'], this.obj[i]['category'], true, true);	
+				text += "<option id ='"+i+"' value='" + this.obj[i]['category'] + "' selected>" + this.obj[i]['category'] + "</option>";	
 			else
-				tmp = new Option (this.obj[i]['category'], this.obj[i]['category']);
-			text  = text + tmp.outerHTML;
+				text += "<option id ='"+i+"' value='" + this.obj[i]['category'] + "'>" + this.obj[i]['category'] + "</option>";			
 		}
 		return text;
 	}
