@@ -1,2 +1,2 @@
-# a-diary
+# Javascript + PHP project
 Javascript + PHP project
