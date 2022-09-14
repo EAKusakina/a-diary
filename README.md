@@ -1,2 +1,2 @@
-# Javascript + PHP project
+# Food and activity diary
 Javascript + PHP project
